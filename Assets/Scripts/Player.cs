@@ -36,8 +36,8 @@ public class Player : MonoBehaviour {
             Vector2 currentMovementDirection = rb.velocity.normalized;
             
             // If changing direction, should use deceleration value
-            float verticalForce   = Mathf.Sign(movementInput.x) == Mathf.Sign(currentMovementDirection.x) ? movementInput.y * acceleration : movementInput.y * deceleration;
-            float horizontalForce = Mathf.Sign(movementInput.y) == Mathf.Sign(currentMovementDirection.y) ? movementInput.x * acceleration : movementInput.x * deceleration;
+            float verticalForce   = Math.Abs(Mathf.Sign(movementInput.x) - Mathf.Sign(currentMovementDirection.x)) < 0.1f ? movementInput.y * acceleration : movementInput.y * deceleration;
+            float horizontalForce = Math.Abs(Mathf.Sign(movementInput.y) - Mathf.Sign(currentMovementDirection.y)) < 0.1f ? movementInput.x * acceleration : movementInput.x * deceleration;
             // if (Mathf.Sign(movementInput.x) != Mathf.Sign(currentMovementDirection.x)) Debug.Log("Changing horizontal direction");
             // if (Mathf.Sign(movementInput.y) != Mathf.Sign(currentMovementDirection.y)) Debug.Log("Changing vertical direction");
             
