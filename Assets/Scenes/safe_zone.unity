@@ -497,10 +497,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 290a1c7d7f6484738ae2273d510d4ad7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  target: {fileID: 1591138824}
-  offset: {x: 0, y: 0, z: 0}
+  target: {fileID: 464503089}
+  offset: {x: 0, y: 0, z: -10}
   smoothSpeed: 0.125
-  followRotation: 1
+  followRotation: 0
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
