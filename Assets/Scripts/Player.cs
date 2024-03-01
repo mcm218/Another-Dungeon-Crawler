@@ -1,13 +1,22 @@
+using Interfaces;
+using Sirenix.OdinInspector;
 using System;
 using UnityEngine;
+using UnityEngine.Events;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 [RequireComponent(typeof(Rigidbody2D), typeof(BoxCollider2D))]
-public class Player : MonoBehaviour {
+public class Player : MonoBehaviour, IHealth, IAttacker  {
     [SerializeField]
-    private float health = 100f;
-    
+    private float initialHealth = 100f;
+
+    [property: SerializeField, ReadOnly]
+    public float Health {
+        get;
+        private set;
+    }
+
     [SerializeField] private float acceleration = 5f;
     [SerializeField] private float deceleration = 5f;
     [SerializeField] private float maxSpeed = 20f;
@@ -16,10 +25,45 @@ public class Player : MonoBehaviour {
     private Rigidbody2D rb;
     
     private InputManager inputManager;
+
+    [SerializeField]
+    private UnityEvent onDeath;
+
+    [property: SerializeField, ReadOnly]
+    public IWeapon Weapon { get; private set; }
+    
+    public void Damage(float damage) {
+        Health -= damage;
+        if (Health <= 0) {
+            onDeath.Invoke();
+        }
+    }
+    
+    public void Attack(IHealth target) {
+        target.Damage(Weapon.CalculateDamage());
+    }
+    
+    public void EquipWeapon(IWeapon weapon) {
+        if (Weapon != null) {
+            Weapon.OnHit.RemoveListener(Attack);
+        }
+        
+        Weapon = weapon;
+        weapon.OnHit.AddListener(Attack);
+    }
+
+    public void ResetHealth() {
+        Health = initialHealth;
+    }
     
     private void Awake() {
         rb           = GetComponent<Rigidbody2D>();
         inputManager = new InputManager();
+        
+        Health = initialHealth;
+        if (Weapon != null) {
+            Weapon.OnHit.AddListener(Attack);
+        }
     }
 
     private void OnEnable() {

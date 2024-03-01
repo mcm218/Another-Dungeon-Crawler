@@ -1,5 +1,9 @@
+using UnityEngine.Events;
+
 namespace Interfaces {
-    public class IWeapon {
-        
+    public interface IWeapon {
+        public float CalculateDamage();
+
+        public UnityEvent<IHealth> OnHit { get; }
     }
 }
