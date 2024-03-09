@@ -16,6 +16,10 @@ namespace Weapons {
         public float GetRange() {
             return model.range;
         }
+        
+        public float GetAttackRate() {
+            return model.attackRate;
+        }
 
         private void Awake() {
             if (model == null) {

@@ -7,48 +7,34 @@ using Weapons;
 
 namespace Enemies {
     
-    [RequireComponent(typeof(CircleCollider2D), typeof(CircleCollider2D), typeof(SpriteRenderer))]
+    [RequireComponent( typeof(SpriteRenderer))]
     public class BasicEnemy : MonoBehaviour, IHealth, IControllable, IAttacker {
-        public float Health { get; private set; }
+        // public  float            Health { get; set; }
+        public float            Health { get; set; } = 100;
+        
+        private CircleCollider2D body;
+        private CircleCollider2D attackCollider;
+        private SpriteRenderer   sprite;
 
         [SerializeField]
         private Weapon _weapon;
 
         public IWeapon Weapon => _weapon as IWeapon;
 
-        private CircleCollider2D attackCollider;
-        private CircleCollider2D body;
-        private SpriteRenderer   sprite;
+        public Collider2D       Body           => body;
+        public CircleCollider2D AttackCollider => attackCollider;
         
-        public Collider2D Body => body;
-        
-        private List<IHealth> targets = new List<IHealth>();
         
         [field:SerializeField]
         public UnityEvent OnDeath { get; private set; }
-        
-        private EnemyModel model;
-
         private void Awake() {
-            if (model == null) {
-                model = ScriptableObject.CreateInstance<EnemyModel>();
-            }
-            
             var colliders = GetComponents<CircleCollider2D>();
             attackCollider = colliders[0];
             body = colliders[1];
             
             sprite = GetComponent<SpriteRenderer>();
-
-            attackCollider.radius = Weapon.GetRange();
-            attackCollider.isTrigger = true;
-
-            Health = model.health;
         }
-
-        /**
-         * This method is called when the enemy is created
-         */
+        
         public bool Damage(float damage) {
             Debug.Log(name + " took " + damage + " damage");
             Health -= damage;
@@ -81,24 +67,5 @@ namespace Enemies {
             }
         }
 
-        private readonly string[] TAGS_TO_ATTACK = {"Player"};
-        
-        private void OnTriggerEnter2D(Collider2D other) {
-            Debug.Log("Trigger with " + other.gameObject.name);
-            if (other.gameObject.TryGetComponent<IHealth>(out var health) && Array.Exists(TAGS_TO_ATTACK, tag => tag == other.gameObject.tag)) {
-                if (health.Body.IsTouching(attackCollider)) {
-                    // targets.Add(health);
-                    Attack(health);
-                }
-            }
-        }
-        
-        private void OnTriggerExit2D(Collider2D other) {
-            if (other.gameObject.TryGetComponent<IHealth>(out var health) && Array.Exists(TAGS_TO_ATTACK, tag => tag == other.gameObject.tag)) {
-                if (!health.Body.IsTouching(attackCollider)) {
-                    // targets.Remove(health);
-                }
-            }
-        }
     }
 }

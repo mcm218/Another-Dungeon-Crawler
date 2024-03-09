@@ -7,5 +7,7 @@ namespace Interfaces {
         public float GetRange();
 
         public UnityEvent<IHealth> OnHit { get; }
+
+        float GetAttackRate();
     }
 }

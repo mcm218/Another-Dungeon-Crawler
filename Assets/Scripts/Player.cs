@@ -44,6 +44,8 @@ public class Player : MonoBehaviour, IHealth, IAttacker  {
 
     public IWeapon Weapon => _weapon as IWeapon;
     
+    private float timeSinceLastAttack = 0f;
+    
     public bool Damage(float damage) {
         Debug.Log(name + " took " + damage + " damage");
         Health       -= damage;
@@ -62,6 +64,7 @@ public class Player : MonoBehaviour, IHealth, IAttacker  {
     
     public void Attack(IHealth target) {
         target.Damage(Weapon.CalculateDamage());
+        timeSinceLastAttack = 0f;
     }
     
     public void EquipWeapon(Weapon weapon) {
@@ -132,7 +135,10 @@ public class Player : MonoBehaviour, IHealth, IAttacker  {
 
         bool attackInput = inputManager.KBM.Attack.ReadValue<float>() > 0f;
         if (attackInput) {
-            if (isAttacking) return;
+            if (isAttacking || timeSinceLastAttack < Weapon.GetAttackRate()) {
+                timeSinceLastAttack += Time.deltaTime;
+                return;
+            }
             Debug.Log("Attacking...");
             isAttacking = true;
             var killedTargets = new List<IHealth>();
@@ -140,6 +146,7 @@ public class Player : MonoBehaviour, IHealth, IAttacker  {
                 if (target.Damage(Weapon.CalculateDamage())) {
                     killedTargets.Add(target);
                 }
+                timeSinceLastAttack = 0f;
             }
 
             killedTargets.ForEach(target => {
@@ -150,6 +157,7 @@ public class Player : MonoBehaviour, IHealth, IAttacker  {
         }
         else {
             isAttacking = false;
+            timeSinceLastAttack += Time.deltaTime;
         }
     }
 
