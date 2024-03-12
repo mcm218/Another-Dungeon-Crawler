@@ -7,14 +7,17 @@ using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.InputSystem;
+using UnityEngine.Serialization;
 using UnityEngine.UI;
 using Weapons;
 
-[RequireComponent(  typeof(Rigidbody2D), typeof(BoxCollider2D), typeof(CircleCollider2D))]
+[RequireComponent(  typeof(Rigidbody2D), typeof(BoxCollider2D))]
 [RequireComponent(typeof(SpriteRenderer))]
 public class Player : MonoBehaviour, IHealth, IAttacker  {
     [SerializeField]
     private float initialHealth = 100f;
+
+    public     GameObject GameObject => gameObject;
 
     [field: SerializeField, ReadOnly]
     public float Health {
@@ -29,8 +32,6 @@ public class Player : MonoBehaviour, IHealth, IAttacker  {
     
     private Rigidbody2D rb;
     
-    private CircleCollider2D attackCollider;
-
     private SpriteRenderer sprite;
     
     private InputManager inputManager;
@@ -39,12 +40,15 @@ public class Player : MonoBehaviour, IHealth, IAttacker  {
     [field:SerializeField]
     public UnityEvent OnDeath { get; private set; }
 
-    [SerializeField]
-    private Weapon _weapon;
-
-    public IWeapon Weapon => _weapon as IWeapon;
+    [FormerlySerializedAs("weapon"),SerializeField]
+    private Sword sword;
     
-    private float timeSinceLastAttack = 0f;
+    [SerializeField]
+    private Gun gun;
+    
+    public Sword Sword => sword;
+    
+    public Gun Gun => gun;
     
     public bool Damage(float damage) {
         Debug.Log(name + " took " + damage + " damage");
@@ -62,18 +66,9 @@ public class Player : MonoBehaviour, IHealth, IAttacker  {
         sprite.color = Color.white;
     }
     
-    public void Attack(IHealth target) {
-        target.Damage(Weapon.CalculateDamage());
-        timeSinceLastAttack = 0f;
-    }
     
-    public void EquipWeapon(Weapon weapon) {
-        if (_weapon != null) {
-            Weapon.OnHit.RemoveListener(Attack);
-        }
-
-        _weapon = weapon;
-        Weapon.OnHit.AddListener(Attack);
+    public void EquipWeapon(Sword newSword) {
+        sword = newSword;
     }
 
     public void ResetHealth() {
@@ -84,24 +79,29 @@ public class Player : MonoBehaviour, IHealth, IAttacker  {
 
     public Collider2D Body => bodyCollider;
     
-    private bool isAttacking = false;
-    
     private List<IHealth> targets = new List<IHealth>();
 
     private void Awake() {
         rb           = GetComponent<Rigidbody2D>();
-        attackCollider = GetComponent<CircleCollider2D>();
         bodyCollider = GetComponent<BoxCollider2D>();
         sprite = GetComponent<SpriteRenderer>();
         inputManager = new InputManager();
 
         Health = initialHealth;
-        
-        attackCollider.radius = Weapon.GetRange();
-        attackCollider.isTrigger = true;
 
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible   = false;
+        Cursor.lockState = CursorLockMode.Confined;
+        Cursor.visible   = true;
+    }
+
+    private void Start() {
+        if (Sword != null) {
+            Debug.Log("Equipping sword...");
+            Sword.Equip(this);
+        }
+        if (Gun != null) {
+            Debug.Log("Equipping gun...");
+            Gun.Equip(this);
+        }
     }
 
     private void OnEnable() {
@@ -112,6 +112,7 @@ public class Player : MonoBehaviour, IHealth, IAttacker  {
         inputManager.Disable();
     }
 
+    // TODO: Point player towards mouse
     private void FixedUpdate() {
         Vector2 movementInput = inputManager.KBM.Movement.ReadValue<Vector2>();
         if (movementInput != Vector2.zero) {
@@ -134,53 +135,49 @@ public class Player : MonoBehaviour, IHealth, IAttacker  {
         }
 
         bool attackInput = inputManager.KBM.Attack.ReadValue<float>() > 0f;
-        if (attackInput) {
-            if (isAttacking || timeSinceLastAttack < Weapon.GetAttackRate()) {
-                timeSinceLastAttack += Time.deltaTime;
-                return;
-            }
-            Debug.Log("Attacking...");
-            isAttacking = true;
-            var killedTargets = new List<IHealth>();
-            foreach (var target in targets) {
-                if (target.Damage(Weapon.CalculateDamage())) {
-                    killedTargets.Add(target);
-                }
-                timeSinceLastAttack = 0f;
-            }
-
-            killedTargets.ForEach(target => {
-                targets.Remove(target);
-                target.Destroy();
-            });
-            
+        if (attackInput && gun != null && gun.CanAttack()) {
+            Debug.Log("Attacking with gun...");
+            gun.PerformAttack();
         }
-        else {
-            isAttacking = false;
-            timeSinceLastAttack += Time.deltaTime;
+        
+        if (attackInput && sword != null && sword.CanAttack()) {
+            Debug.Log("Attacking with sword...");
+            sword.PerformAttack();
         }
+        
+        Vector2 screenPosition = inputManager.KBM.Aim.ReadValue<Vector2>();
+        transform.rotation = Quaternion.Euler(0, 0, GetLookAngle(screenPosition));
     }
+    
+    public float GetLookAngle(Vector2 position) {
+        Vector2 worldPosition = Camera.main.ScreenToWorldPoint(position);
+        Vector2 direction     = worldPosition - (Vector2)transform.position;
+        float   angle         = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
+        return angle;
+    }
+    
+    #if UNITY_EDITOR
+
+    private void OnDrawGizmos() {
+        if (!Application.isPlaying) return;
+        
+        if (sword != null) {
+            // Draw attack range
+            Gizmos.color = Color.red;
+            Gizmos.DrawWireSphere(transform.position, sword.GetRange());
+        }
+
+        // Draw look direction - NOT CURRENTLY WORKING
+        // Vector2 screenPosition = inputManager.KBM.Aim.ReadValue<Vector2>();
+        // Vector2 worldPosition  = Camera.main.ScreenToWorldPoint(screenPosition);
+        // Gizmos.DrawLine(transform.position, worldPosition);
+    }
+
+    #endif
 
     public void Destroy() {
         gameObject.SetActive(false);
     }
     
     private string[] TAGS_TO_ATTACK = {"Enemy"};
-
-    private void OnTriggerEnter2D(Collider2D other) {
-        Debug.Log("Trigger with " + other.gameObject.name);
-        if (other.gameObject.TryGetComponent<IHealth>(out var health) && Array.Exists(TAGS_TO_ATTACK, tag => tag == other.gameObject.tag)) {
-            if (health.Body.IsTouching(attackCollider)) {
-                targets.Add(health);
-            }
-        }
-    }
-    
-    private void OnTriggerExit2D(Collider2D other) {
-        if (other.gameObject.TryGetComponent<IHealth>(out var health) && Array.Exists(TAGS_TO_ATTACK, tag => tag == other.gameObject.tag)) {
-            if (!health.Body.IsTouching(attackCollider)) {
-                targets.Remove(health);
-            }
-        }
-    }
 }

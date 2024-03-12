@@ -2,7 +2,7 @@
 /shelf/
 /workspace.xml
 # Rider ignored files
-/.idea.another-dungeon-crawler.iml
+/.idea.Scripts.iml
 /modules.xml
 /contentModel.xml
 /projectSettingsUpdater.xml
@@ -11,5 +11,3 @@
 # Datasource local storage ignored files
 /dataSources/
 /dataSources.local.xml
-# GitHub Copilot persisted chat sessions
-/copilot/chatSessions

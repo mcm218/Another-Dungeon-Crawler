@@ -44,6 +44,15 @@ public partial class @InputManager: IInputActionCollection2, IDisposable
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""Aim"",
+                    ""type"": ""Value"",
+                    ""id"": ""a1c3a41a-9000-4a21-b06f-e0ac1ec3aa49"",
+                    ""expectedControlType"": ""Vector2"",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": true
                 }
             ],
             ""bindings"": [
@@ -123,6 +132,17 @@ public partial class @InputManager: IInputActionCollection2, IDisposable
                     ""action"": ""Attack"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""f9aaced5-4684-4ddf-9f8c-8a6c500129c7"",
+                    ""path"": ""<Mouse>/position"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Aim"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
                 }
             ]
         }
@@ -133,6 +153,7 @@ public partial class @InputManager: IInputActionCollection2, IDisposable
         m_KBM = asset.FindActionMap("KBM", throwIfNotFound: true);
         m_KBM_Movement = m_KBM.FindAction("Movement", throwIfNotFound: true);
         m_KBM_Attack = m_KBM.FindAction("Attack", throwIfNotFound: true);
+        m_KBM_Aim = m_KBM.FindAction("Aim", throwIfNotFound: true);
     }
 
     public void Dispose()
@@ -196,12 +217,14 @@ public partial class @InputManager: IInputActionCollection2, IDisposable
     private List<IKBMActions> m_KBMActionsCallbackInterfaces = new List<IKBMActions>();
     private readonly InputAction m_KBM_Movement;
     private readonly InputAction m_KBM_Attack;
+    private readonly InputAction m_KBM_Aim;
     public struct KBMActions
     {
         private @InputManager m_Wrapper;
         public KBMActions(@InputManager wrapper) { m_Wrapper = wrapper; }
         public InputAction @Movement => m_Wrapper.m_KBM_Movement;
         public InputAction @Attack => m_Wrapper.m_KBM_Attack;
+        public InputAction @Aim => m_Wrapper.m_KBM_Aim;
         public InputActionMap Get() { return m_Wrapper.m_KBM; }
         public void Enable() { Get().Enable(); }
         public void Disable() { Get().Disable(); }
@@ -217,6 +240,9 @@ public partial class @InputManager: IInputActionCollection2, IDisposable
             @Attack.started += instance.OnAttack;
             @Attack.performed += instance.OnAttack;
             @Attack.canceled += instance.OnAttack;
+            @Aim.started += instance.OnAim;
+            @Aim.performed += instance.OnAim;
+            @Aim.canceled += instance.OnAim;
         }
 
         private void UnregisterCallbacks(IKBMActions instance)
@@ -227,6 +253,9 @@ public partial class @InputManager: IInputActionCollection2, IDisposable
             @Attack.started -= instance.OnAttack;
             @Attack.performed -= instance.OnAttack;
             @Attack.canceled -= instance.OnAttack;
+            @Aim.started -= instance.OnAim;
+            @Aim.performed -= instance.OnAim;
+            @Aim.canceled -= instance.OnAim;
         }
 
         public void RemoveCallbacks(IKBMActions instance)
@@ -248,5 +277,6 @@ public partial class @InputManager: IInputActionCollection2, IDisposable
     {
         void OnMovement(InputAction.CallbackContext context);
         void OnAttack(InputAction.CallbackContext context);
+        void OnAim(InputAction.CallbackContext context);
     }
 }

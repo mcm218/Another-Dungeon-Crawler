@@ -1,10 +1,13 @@
 using Interfaces;
+using Sirenix.OdinInspector;
 using System;
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
+using Weapons;
+using Random = UnityEngine.Random;
 
 namespace Enemies {
-    [RequireComponent(typeof(CircleCollider2D), typeof(CircleCollider2D))]
     public class EnemyController : MonoBehaviour {
         [SerializeField]
         private GameObject target;
@@ -12,21 +15,20 @@ namespace Enemies {
         private IHealth lockedTarget;
         
         private EnemyModel       model;
+        [Required]
         public BasicEnemy       enemy;
         
         private CircleCollider2D AttackCollider => enemy.AttackCollider;
         private Collider2D Body => enemy.Body;
-        private IWeapon Weapon => enemy.Weapon;
+        private Sword Sword => enemy.Sword;
         
-        private float timeSinceLastAttack = 0f;
+        private Gun Gun => enemy.Gun;
         
         public List<Transform> children    = new List<Transform>();
         public Vector3         childOffset = Vector3.zero;
         
         
         private void Awake() {
-            enemy = GetComponent<BasicEnemy>();
-            
             if (target == null) {
                 var potentialTarget = GameObject.FindGameObjectWithTag("Player");
                 if (potentialTarget != null) {
@@ -40,34 +42,43 @@ namespace Enemies {
         }
 
         private void Start() {
-            AttackCollider.radius   = enemy.Weapon.GetRange();
+            
             AttackCollider.isTrigger = true;
-
             enemy.Health = model.health;
+            if (Sword != null) {
+                AttackCollider.radius    = Sword.GetRange();
+                Sword.Equip(enemy);
+            }
+            if (Gun != null) {
+                AttackCollider.radius = Gun.GetRange();
+                Gun.Equip(enemy);
+            }
+            randomOffset = Random.Range(0, 100f);
         }
         
-        float wiggleDistance = 10f;
-        float wiggleSpeed    = 5;
+        float         wiggleDistance = 5f;
+        float         wiggleSpeed    = 5;
+        private float randomOffset;
         
-
         private void Update() {
             if (target == null) return;
             // var direction = target.transform.position - transform.position;
             // var angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
             // transform.rotation = Quaternion.Euler(0, 0, angle);
             
-            transform.position = Vector3.MoveTowards(transform.position, target.transform.position, model.speed * Time.deltaTime);
-            children.ForEach(child => child.position = Vector3.MoveTowards(child.position, target.transform.position + childOffset, model.speed * Time.deltaTime));
+            enemy.GameObject.transform.position = Vector3.MoveTowards(enemy.GameObject.transform.position, target.transform.position, model.speed * Time.deltaTime);
+            children.ForEach(child => child.position = enemy.GameObject.transform.position + childOffset);
             
-            if (lockedTarget != null) {
-                timeSinceLastAttack += Time.deltaTime;
-                if (timeSinceLastAttack >= Weapon.GetAttackRate()) {
-                    enemy.Attack(lockedTarget);
-                    timeSinceLastAttack = 0f;
-                }
+            if (lockedTarget != null && Gun != null && Gun.CanAttack()) {
+                // Gun.PerformAttack();
             }
-            float yPosition = Mathf.Sin(Time.time * wiggleSpeed) * wiggleDistance;
-            transform.localRotation = Quaternion.Euler(0, 0, yPosition);
+            
+            if (lockedTarget != null && Sword != null && Sword.CanAttack()) {
+                // Sword.PerformAttack();
+            }
+            float yPosition = Mathf.Sin((Time.time + randomOffset) * wiggleSpeed) * wiggleDistance;
+            enemy.GameObject.transform.localRotation = Quaternion.Euler(0, 0, yPosition);
+            children.ForEach(child => child.localRotation = Quaternion.Euler(0, 0, -yPosition));
         }
         
  
@@ -75,11 +86,9 @@ namespace Enemies {
         private readonly string[] TAGS_TO_ATTACK = {"Player"};
         
         private void OnTriggerEnter2D(Collider2D other) {
-            Debug.Log("Trigger with " + other.gameObject.name);
             if (other.gameObject.TryGetComponent<IHealth>(out var health) && Array.Exists(TAGS_TO_ATTACK, tag => tag == other.gameObject.tag)) {
                 if (health.Body.IsTouching(AttackCollider)) {
                     lockedTarget = health;
-                    enemy.Attack(health);
                 }
             }
         }
